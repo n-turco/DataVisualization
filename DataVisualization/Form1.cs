@@ -20,6 +20,11 @@ namespace DataVisualization
 
             string casesPath = Path.Combine(basePath, "CovidData", "covid19-download.csv");
             string testingPath = Path.Combine(basePath, "CovidData", "covid19-epiSummary-labIndicators2.csv");
+
+            if (chartMain.ChartAreas.Count == 0)
+            {
+                chartMain.ChartAreas.Add(new ChartArea());
+            }
         }
 
         // ===================== PIE CHART =====================
@@ -33,31 +38,51 @@ namespace DataVisualization
             chartMain.Series.Clear();
             chartMain.Titles.Clear();
 
+            if (chartMain.ChartAreas.Count == 0)
+            {
+                chartMain.ChartAreas.Add(new ChartArea());
+            }
+
             chartMain.Series.Add("Cases");
             chartMain.Series["Cases"].ChartType = SeriesChartType.Pie;
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            try
             {
-                conn.Open();
-
-                SqlCommand cmd = new SqlCommand(@"
-                    SELECT Province, MAX(TotalCases) AS Total
-                    FROM Cases
-                    WHERE Date = @date
-                    GROUP BY Province", conn);
-
-                cmd.Parameters.AddWithValue("@date", selectedDate);
-
-                var reader = cmd.ExecuteReader();
-
-                while (reader.Read())
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
-                    chartMain.Series["Cases"].Points.AddXY(
-                        reader["Province"], reader["Total"]);
+                    conn.Open();
+
+                    SqlCommand cmd = new SqlCommand(@"
+                SELECT Province, MAX(TotalCases) AS Total
+                FROM Cases
+                WHERE Date = @date
+                GROUP BY Province", conn);
+
+                    cmd.Parameters.AddWithValue("@date", selectedDate.Date);
+
+                    var reader = cmd.ExecuteReader();
+
+                    if (!reader.HasRows)
+                    {
+                        MessageBox.Show("No data found for: " + selectedDate.ToShortDateString());
+                    }
+
+                    while (reader.Read())
+                    {
+                        chartMain.Series["Cases"].Points.AddXY(
+                            reader["Province"], reader["Total"]);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
             }
 
             chartMain.Titles.Add("COVID Cases by Province");
+
+            chartMain.Invalidate();
+            chartMain.Update();
         }
 
         // ===================== LINE CHART =====================
@@ -76,12 +101,13 @@ namespace DataVisualization
 
             chartMain.Series["Cases"].ChartType = SeriesChartType.Line;
             chartMain.Series["Tested"].ChartType = SeriesChartType.Line;
-
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            try
             {
-                conn.Open();
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
 
-                SqlCommand cmd = new SqlCommand(@"
+                    SqlCommand cmd = new SqlCommand(@"
                     SELECT c.Date,
                            SUM(c.TotalCases) AS Cases,
                            SUM(t.Tested) AS Tested
@@ -93,17 +119,22 @@ namespace DataVisualization
                     GROUP BY c.Date
                     ORDER BY c.Date", conn);
 
-                cmd.Parameters.AddWithValue("@start", start);
-                cmd.Parameters.AddWithValue("@end", end);
-                cmd.Parameters.AddWithValue("@province", province);
+                    cmd.Parameters.AddWithValue("@start", start);
+                    cmd.Parameters.AddWithValue("@end", end);
+                    cmd.Parameters.AddWithValue("@province", province);
 
-                var reader = cmd.ExecuteReader();
+                    var reader = cmd.ExecuteReader();
 
-                while (reader.Read())
-                {
-                    chartMain.Series["Cases"].Points.AddXY(reader["Date"], reader["Cases"]);
-                    chartMain.Series["Tested"].Points.AddXY(reader["Date"], reader["Tested"]);
+                    while (reader.Read())
+                    {
+                        chartMain.Series["Cases"].Points.AddXY(reader["Date"], reader["Cases"]);
+                        chartMain.Series["Tested"].Points.AddXY(reader["Date"], reader["Tested"]);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
             }
 
             chartMain.ChartAreas[0].AxisX.Title = "Date";
@@ -114,13 +145,13 @@ namespace DataVisualization
         // ===================== LOAD DATA =====================
         private void btnLoadCases_Click(object sender, EventArgs e)
         {
-           if(!IsTablePopulated("Cases"))
+            if (!IsTablePopulated("Cases"))
             {
                 string path = Path.GetFullPath(
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\CovidData\covid19-download.csv"));
 
                 LoadCases(path);
-                
+
             }
             else
             {
@@ -141,7 +172,7 @@ namespace DataVisualization
             {
                 MessageBox.Show("Testing already loaded.");
             }
-           
+
         }
 
         void LoadCases(string filePath)
@@ -150,32 +181,40 @@ namespace DataVisualization
             {
                 conn.Open();
 
-                using (var reader = new StreamReader(filePath))
+                try
                 {
-                    reader.ReadLine();
-
-                    while (!reader.EndOfStream)
+                    using (var reader = new StreamReader(filePath))
                     {
-                        var values = reader.ReadLine().Split(',');
+                        reader.ReadLine();
 
-                        if (values.Length < 8) continue;
+                        while (!reader.EndOfStream)
+                        {
+                            var values = reader.ReadLine().Split(',');
 
-                        string province = values[1];
-                        if (province == "Canada") continue;
+                            if (values.Length < 8) continue;
 
-                        if (!DateTime.TryParse(values[3], out DateTime date)) continue;
-                        if (!int.TryParse(values[7], out int cases)) continue;
+                            string province = values[1];
+                            if (province == "Canada") continue;
 
-                        SqlCommand cmd = new SqlCommand(
-                            "INSERT INTO Cases (Province, Date, TotalCases) VALUES (@p,@d,@c)", conn);
+                            if (!DateTime.TryParse(values[3], out DateTime date)) continue;
+                            if (!int.TryParse(values[7], out int cases)) continue;
 
-                        cmd.Parameters.AddWithValue("@p", province);
-                        cmd.Parameters.AddWithValue("@d", date);
-                        cmd.Parameters.AddWithValue("@c", cases);
+                            SqlCommand cmd = new SqlCommand(
+                                "INSERT INTO Cases (Province, Date, TotalCases) VALUES (@p,@d,@c)", conn);
 
-                        cmd.ExecuteNonQuery();
+                            cmd.Parameters.AddWithValue("@p", province);
+                            cmd.Parameters.AddWithValue("@d", date);
+                            cmd.Parameters.AddWithValue("@c", cases);
+
+                            cmd.ExecuteNonQuery();
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+
             }
 
             MessageBox.Show("Cases loaded.");
@@ -183,54 +222,70 @@ namespace DataVisualization
 
         void LoadTesting(string filePath)
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            try
             {
-                conn.Open();
-
-                using (var reader = new StreamReader(filePath))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
-                    reader.ReadLine();
+                    conn.Open();
 
-                    while (!reader.EndOfStream)
+                    using (var reader = new StreamReader(filePath))
                     {
-                        var values = reader.ReadLine().Split(',');
+                        reader.ReadLine();
 
-                        if (values.Length < 6) continue;
+                        while (!reader.EndOfStream)
+                        {
+                            var values = reader.ReadLine().Split(',');
 
-                        string province = values[0];
-                        if (province == "Canada") continue;
+                            if (values.Length < 6) continue;
 
-                        if (!DateTime.TryParse(values[4], out DateTime date)) continue;
-                        if (!int.TryParse(values[5], out int tested)) continue;
+                            string province = values[0];
+                            if (province == "Canada") continue;
 
-                        SqlCommand cmd = new SqlCommand(
-                            "INSERT INTO Testing (Province, Date, Tested) VALUES (@p,@d,@t)", conn);
+                            if (!DateTime.TryParse(values[4], out DateTime date)) continue;
+                            if (!int.TryParse(values[5], out int tested)) continue;
 
-                        cmd.Parameters.AddWithValue("@p", province);
-                        cmd.Parameters.AddWithValue("@d", date);
-                        cmd.Parameters.AddWithValue("@t", tested);
+                            SqlCommand cmd = new SqlCommand(
+                                "INSERT INTO Testing (Province, Date, Tested) VALUES (@p,@d,@t)", conn);
 
-                        cmd.ExecuteNonQuery();
+                            cmd.Parameters.AddWithValue("@p", province);
+                            cmd.Parameters.AddWithValue("@d", date);
+                            cmd.Parameters.AddWithValue("@t", tested);
+
+                            cmd.ExecuteNonQuery();
+                        }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+
 
             MessageBox.Show("Testing loaded.");
         }
 
         bool IsTablePopulated(string tableName)
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            int count = 0;
+            try
             {
-                conn.Open();
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
 
-                SqlCommand cmd = new SqlCommand(
-                    $"SELECT COUNT(1) FROM {tableName}", conn);
+                    SqlCommand cmd = new SqlCommand(
+                        $"SELECT COUNT(1) FROM {tableName}", conn);
 
-                int count = (int)cmd.ExecuteScalar();
-
-                return count > 0;
+                    count = (int)cmd.ExecuteScalar();
+                }
             }
+            catch (Exception ex) 
+            {
+                MessageBox.Show(ex.Message);
+                return false;
+            }
+            return count > 0;
         }
 
         void LoadProvinces()
