@@ -15,7 +15,7 @@ DataVisualization is a Windows Forms desktop application that parses CSV files, 
 ## Technical Stack
 
 * **.NET** (Windows Forms / WinForms)
-* **C#** — 100% of the codebase
+* **C#** — codebase
 * **System.Windows.Forms.DataVisualization** — charting and graphing controls
 * **Visual Studio** solution format (`.slnx`)
 
