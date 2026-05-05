@@ -2,13 +2,14 @@
 
 ## Project Overview
 
-DataVisualization is a Windows Forms desktop application that fetches, processes, and renders a visual representation of COVID-19 data. Built entirely in C#, it provides an intuitive graphical interface for exploring pandemic statistics through interactive charts and graphs.
+DataVisualization is a Windows Forms desktop application that parses CSV files, processes, and renders a visual representation of COVID-19 data. Built entirely in C#, it provides an intuitive graphical interface for exploring pandemic statistics through interactive charts and graphs.
 
 ## Key Features
 
 * Load and display COVID-19 data visually within a Windows Forms UI
+* Data was pulled from https://health-infobase.canada.ca/covid-19/ | cases_and_deaths.csv | lab_indicators_data.csv 
 * Interactive chart controls for exploring case trends and statistics
-* Clean, event-driven Windows Forms design using the built-in charting library
+* Event-driven Windows Forms design using the built-in charting library
 * Lightweight desktop application with no external server or database required
 
 ## Technical Stack
