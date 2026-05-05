@@ -35,14 +35,17 @@ DataVisualization/
 ## How to Run (Local Development)
 
 1. **Prerequisites:** Ensure you have the [.NET SDK](https://dotnet.microsoft.com/download) and Visual Studio (or the .NET CLI) installed on a Windows machine.
+2. Access to a database or create one to store the data from CSV files
 
-2. **Clone the repository:**
+4. **Clone the repository:**
    ```bash
    git clone https://github.com/n-turco/DataVisualization.git
    cd DataVisualization
    ```
 
-3. **Open in Visual Studio:**
+4.**Open App.config to configure connection string, under name="DbConnection": connectionString="Data Source=localhost\SQLEXPRESS; Initial Catalog=CovidDB; Integrated Security=True;"
+    Replace Data Source with your server name, replace Initial Catalog with Database name.
+5. **Open in Visual Studio:**
    Open `DataVisualization.slnx` in Visual Studio and press **F5** to build and run.
 
    **Or via CLI:**
@@ -52,7 +55,7 @@ DataVisualization/
    dotnet run --project DataVisualization/DataVisualization.csproj
    ```
 
-4. The Windows Forms window will launch, displaying the COVID-19 data visualization.
+6. The Windows Forms window will launch, displaying the COVID-19 data visualization.
 
 > **Note:** This is a Windows-only application due to its dependency on Windows Forms.
 
